@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,11 +13,9 @@ import (
 	"github.com/msfjarvis/gdrive/drive"
 )
 
-var ClientId string
-var ClientSecret string
-
-const TokenFilename = "token_v2.json"
-const OauthCredentialsFilename = "oauth_client.json"
+const ClientId = "ABCDEFGH.apps.googleusercontent.com"
+const ClientSecret = "IJKLMNOPQ"
+const TokenFilename = "USERNAME_v2.json"
 const DefaultCacheFileName = "file_cache.json"
 
 func listHandler(ctx cli.Context) {
@@ -343,45 +339,20 @@ func aboutExportHandler(ctx cli.Context) {
 	checkErr(err)
 }
 
-func getOauthAppCredentials(credsPath string) (clientId string, clientSecret string, err error) {
-	if _, err := os.Stat(credsPath); errors.Is(err, os.ErrNotExist) {
-		return ClientId, ClientSecret, nil
-	}
-	var oauthCredentials struct {
-		ClientId     string `json:"client_id"`
-		ClientSecret string `json:"client_secret"`
-	}
-	content, err := ioutil.ReadFile(credsPath)
-	if err != nil {
-		return "", "", err
-	}
-	json.Unmarshal(content, &oauthCredentials)
-	clientId = oauthCredentials.ClientId
-	clientSecret = oauthCredentials.ClientSecret
-
-	return clientId, clientSecret, nil
-}
-
 func getOauthClient(args cli.Arguments) (*http.Client, error) {
-	configDir := getConfigDir(args)
-
-	credsPath := ConfigFilePath(configDir, OauthCredentialsFilename)
-	clientId, clientSecret, err := getOauthAppCredentials(credsPath)
-	if err != nil {
-		ExitF("Failed to load oauth app credentials: %s", err)
-	}
-
 	if args.String("refreshToken") != "" && args.String("accessToken") != "" {
 		ExitF("Access token not needed when refresh token is provided")
 	}
 
 	if args.String("refreshToken") != "" {
-		return auth.NewRefreshTokenClient(clientId, clientSecret, args.String("refreshToken")), nil
+		return auth.NewRefreshTokenClient(ClientId, ClientSecret, args.String("refreshToken")), nil
 	}
 
 	if args.String("accessToken") != "" {
-		return auth.NewAccessTokenClient(clientId, clientSecret, args.String("accessToken")), nil
+		return auth.NewAccessTokenClient(ClientId, ClientSecret, args.String("accessToken")), nil
 	}
+
+	configDir := getConfigDir(args)
 
 	if args.String("serviceAccount") != "" {
 		serviceAccountPath := ConfigFilePath(configDir, args.String("serviceAccount"))
@@ -393,7 +364,7 @@ func getOauthClient(args cli.Arguments) (*http.Client, error) {
 	}
 
 	tokenPath := ConfigFilePath(configDir, TokenFilename)
-	return auth.NewFileSourceClient(clientId, clientSecret, tokenPath, auth.AuthCodeHTTP)
+	return auth.NewFileSourceClient(ClientId, ClientSecret, tokenPath, auth.AuthCodeHTTP)
 }
 
 func getConfigDir(args cli.Arguments) string {
